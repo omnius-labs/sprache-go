@@ -6,9 +6,11 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/lyrise/sprache-go/helper"
 )
 
+// TryParse a single character matching 'predicate'
 func RuneFunc(predicate func(rune) bool, description string) Parser[rune] {
 	return func(input ParserInput) ParserResult[rune] {
 		if input.IsEnd() {
@@ -23,24 +25,28 @@ func RuneFunc(predicate func(rune) bool, description string) Parser[rune] {
 	}
 }
 
+// Parse a single character except those matching 'predicate'
 func RuneExceptFunc(predicate func(rune) bool, description string) Parser[rune] {
 	return RuneFunc(func(c rune) bool {
 		return !predicate(c)
 	}, fmt.Sprintf("any character expect %v", description))
 }
 
+// Parse a single character c.
 func Rune(c rune) Parser[rune] {
 	return RuneFunc(func(r rune) bool {
 		return r == c
 	}, string(c))
 }
 
+// Parse a single character except c.
 func RuneExcept(c rune) Parser[rune] {
 	return RuneExceptFunc(func(r rune) bool {
 		return r == c
 	}, string(c))
 }
 
+// Parse a single character of any in rs
 func Runes(rs ...rune) Parser[rune] {
 	description := strings.Join(helper.Map(rs, helper.RuneToString), "|")
 	return RuneFunc(func(r rune) bool {
@@ -48,6 +54,7 @@ func Runes(rs ...rune) Parser[rune] {
 	}, description)
 }
 
+// Parse a single character of any in s
 func RunesString(s string) Parser[rune] {
 	rs := []rune(s)
 	description := strings.Join(helper.Map(rs, helper.RuneToString), "|")
@@ -56,6 +63,7 @@ func RunesString(s string) Parser[rune] {
 	}, description)
 }
 
+// Parses a single character except for those in rs
 func RunesExcept(rs ...rune) Parser[rune] {
 	description := strings.Join(helper.Map(rs, helper.RuneToString), "|")
 	return RuneExceptFunc(func(r rune) bool {
@@ -63,6 +71,7 @@ func RunesExcept(rs ...rune) Parser[rune] {
 	}, description)
 }
 
+// Parses a single character except for those in s
 func RunesStringExcept(s string) Parser[rune] {
 	rs := []rune(s)
 	description := strings.Join(helper.Map(rs, helper.RuneToString), "|")
@@ -71,66 +80,90 @@ func RunesStringExcept(s string) Parser[rune] {
 	}, description)
 }
 
-func RuneIgnoreCase(c rune) Parser[rune] {
+// Parse a single character in a case-insensitive fashion.
+func IgnoreCase(c rune) Parser[rune] {
 	return RuneFunc(func(r rune) bool {
 		return unicode.ToLower(r) == unicode.ToLower(c)
 	}, string(c))
 }
 
-// func String(s string) Parser[rune] {
-// }
+// Parse a string in a case-insensitive fashion.
+func IgnoreCaseString(s string) Parser[[]rune] {
+	res := Return([]rune{})
+	for _, r := range s {
+		res = Concat(res, Once(IgnoreCase(r)))
+	}
+	return SetExpectationIfError(res, s)
+}
 
-// func StringIgnoreCase(s string) Parser[rune] {
-// }
+// Parse a string of characters.
+func String(s string) Parser[[]rune] {
+	res := Return([]rune{})
+	for _, r := range s {
+		res = Concat(res, Once(Rune(r)))
+	}
+	return SetExpectationIfError(res, s)
+}
 
+// Parse any character.
 func AnyRune() Parser[rune] {
 	return RuneFunc(func(r rune) bool {
 		return true
 	}, "any character")
 }
 
+// Parse a whitespace.
 func WhiteSpace() Parser[rune] {
 	return RuneFunc(func(r rune) bool {
 		return unicode.IsSpace(r)
 	}, "whitespace")
 }
 
+// Parse a digit.
 func Digit() Parser[rune] {
 	return RuneFunc(func(r rune) bool {
 		return unicode.IsDigit(r)
 	}, "digit")
 }
 
+// Parse a letter.
 func Letter() Parser[rune] {
 	return RuneFunc(func(r rune) bool {
 		return unicode.IsLetter(r)
 	}, "letter")
 }
 
+// Parse a letter or digit.
 func LetterOrDigit() Parser[rune] {
 	return RuneFunc(func(r rune) bool {
 		return unicode.IsLetter(r) || unicode.IsDigit(r)
 	}, "letter or digit")
 }
 
+// Parse a lowercase letter.
 func Lower() Parser[rune] {
 	return RuneFunc(func(r rune) bool {
 		return unicode.IsLower(r)
 	}, "lowercase letter")
 }
 
+// Parse an uppercase letter.
 func Upper() Parser[rune] {
 	return RuneFunc(func(r rune) bool {
 		return unicode.IsUpper(r)
 	}, "uppercase letter")
 }
 
+// Parse a numeric character.
 func Numeric() Parser[rune] {
 	return RuneFunc(func(r rune) bool {
 		return unicode.IsNumber(r)
 	}, "numeric character")
 }
 
+// Constructs a parser that will fail if the given parser succeeds,
+// and will succeed if the given parser fails. In any case, it won't
+// consume any input. It's like a negative look-ahead in regex.
 func Not[T any](parser Parser[T]) Parser[T] {
 	return func(input ParserInput) ParserResult[T] {
 		r := parser(input)
@@ -144,6 +177,7 @@ func Not[T any](parser Parser[T]) Parser[T] {
 	}
 }
 
+// Parse first, and if successful, then parse second.
 func Then[T any, U any](first Parser[T], second func(T) Parser[U]) Parser[U] {
 	return func(input ParserInput) ParserResult[U] {
 		r := first(input)
@@ -154,6 +188,7 @@ func Then[T any, U any](first Parser[T], second func(T) Parser[U]) Parser[U] {
 	}
 }
 
+// Parse a stream of elements.
 func Many[T any](parser Parser[T]) Parser[[]T] {
 	return func(input ParserInput) ParserResult[[]T] {
 		var results []T
@@ -174,12 +209,32 @@ func Many[T any](parser Parser[T]) Parser[[]T] {
 	}
 }
 
-// XMany
+// Parse a stream of elements, failing if any element is only partially parsed.
+func XMany[T any](parser Parser[T]) Parser[[]T] {
+	return Then(Many(parser), func(m []T) Parser[[]T] {
+		return XOr(Once(parser), Return(m))
+	})
+}
 
-// AtLeastOnce
+// TryParse a stream of elements with at least one item.
+func AtLeastOnce[T any](parser Parser[T]) Parser[[]T] {
+	return Then(Once(parser), func(t1 []T) Parser[[]T] {
+		return Select(Many(parser), func(ts []T) []T {
+			return helper.Union(t1, ts)
+		})
+	})
+}
 
-// XAtLeastOnce
+// TryParse a stream of elements with at least one item. Except the first
+func XAtLeastOnce[T any](parser Parser[T]) Parser[[]T] {
+	return Then(Once(parser), func(t1 []T) Parser[[]T] {
+		return Select(XMany(parser), func(ts []T) []T {
+			return helper.Union(t1, ts)
+		})
+	})
+}
 
+// Parse end-of-input.
 func End[T any](parser Parser[T]) Parser[T] {
 	return func(input ParserInput) ParserResult[T] {
 		r := parser(input)
@@ -194,12 +249,14 @@ func End[T any](parser Parser[T]) Parser[T] {
 	}
 }
 
+// Take the result of parsing, and project it onto a different domain.
 func Select[T any, U any](parser Parser[T], convert func(T) U) Parser[U] {
 	return Then(parser, func(v T) Parser[U] {
 		return Return[U](convert(v))
 	})
 }
 
+// Parse the token, embedded in any amount of whitespace characters.
 func Token[T any](parser Parser[T]) Parser[T] {
 	return Then(Many(WhiteSpace()), func(_ []rune) Parser[T] {
 		return Then(parser, func(v T) Parser[T] {
@@ -210,14 +267,106 @@ func Token[T any](parser Parser[T]) Parser[T] {
 	})
 }
 
+// Version of Return with simpler inline syntax.
 func Return[T any](value T) Parser[T] {
 	return func(input ParserInput) ParserResult[T] {
 		return NewSuccessResult[T](value, input)
 	}
 }
 
+// Convert a stream of characters to a string.
 func Text(parser Parser[[]rune]) Parser[string] {
 	return Select(parser, func(rs []rune) string {
 		return string(rs)
+	})
+}
+
+// Parse first, if it succeeds, return first, otherwise try second.
+func Or[T any](first Parser[T], second Parser[T]) Parser[T] {
+	return func(input ParserInput) ParserResult[T] {
+		var fr = first(input)
+		if !fr.Succeeded {
+			return IfFailure(second(input), func(sf ParserResult[T]) ParserResult[T] {
+				return determineBestError(fr, sf)
+			})
+		}
+
+		if cmp.Equal(fr.Remainder, input) {
+			return IfFailure(second(input), func(sf ParserResult[T]) ParserResult[T] {
+				return fr
+			})
+		}
+
+		return fr
+	}
+}
+
+// Parse first, if it succeeds, return first, otherwise try second.
+func XOr[T any](first Parser[T], second Parser[T]) Parser[T] {
+	return func(input ParserInput) ParserResult[T] {
+		var fr = first(input)
+		if !fr.Succeeded {
+
+			// The 'X' part
+			if !cmp.Equal(fr.Remainder, input) {
+				return fr
+			}
+
+			return IfFailure(second(input), func(sf ParserResult[T]) ParserResult[T] {
+				return determineBestError(fr, sf)
+			})
+		}
+
+		if cmp.Equal(fr.Remainder, input) {
+			return IfFailure(second(input), func(sf ParserResult[T]) ParserResult[T] {
+				return fr
+			})
+		}
+
+		return fr
+	}
+}
+
+func determineBestError[T any](firstFailure ParserResult[T], secondFailure ParserResult[T]) ParserResult[T] {
+	if secondFailure.Remainder.Position() > firstFailure.Remainder.Position() {
+		return secondFailure
+	}
+
+	if secondFailure.Remainder.Position() == firstFailure.Remainder.Position() {
+		unionFailure := NewFailureResult[T](
+			firstFailure.Remainder,
+			firstFailure.Message,
+			helper.Union(firstFailure.Expectations, secondFailure.Expectations))
+		return unionFailure
+	}
+
+	return firstFailure
+}
+
+// Names part of the grammar for help with error messages.
+func SetExpectationIfError[T any](parser Parser[T], expectation string) Parser[T] {
+	return func(input ParserInput) ParserResult[T] {
+		return IfFailure(parser(input), func(f ParserResult[T]) ParserResult[T] {
+			if cmp.Equal(f.Remainder, input) {
+				return NewFailureResult[T](f.Remainder, f.Message, []string{expectation})
+			}
+			return f
+		})
+	}
+}
+
+// Parse a stream of elements containing only one item.
+func Once[T any](parser Parser[T]) Parser[[]T] {
+	return Select(parser, func(r T) []T {
+		return []T{r}
+	})
+}
+
+// Concatenate two streams of elements.
+func Concat[T any](first, second Parser[[]T]) Parser[[]T] {
+	return Then(first, func(fr []T) Parser[[]T] {
+		return Select(second, func(sr []T) []T {
+			return helper.Union(fr, sr)
+		})
 	})
 }
