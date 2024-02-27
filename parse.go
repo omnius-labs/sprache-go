@@ -178,11 +178,10 @@ func Not[T any](parser Parser[T]) Parser[T] {
 }
 
 // Parse first, and if successful, then parse second.
-func Then[T any, U any](first Parser[T], second func(T) Parser[U]) Parser[U] {
+func Then[T, U any](first Parser[T], second func(T) Parser[U]) Parser[U] {
 	return func(input ParserInput) ParserResult[U] {
 		r := first(input)
-
-		return IfSuccess[T, U](r, func(r ParserResult[T]) ParserResult[U] {
+		return IfSuccess(r, func(r ParserResult[T]) ParserResult[U] {
 			return second(r.Value)(r.Remainder)
 		})
 	}
@@ -267,11 +266,18 @@ func Token[T any](parser Parser[T]) Parser[T] {
 	})
 }
 
-// Version of Return with simpler inline syntax.
+// Succeed immediately and return value.
 func Return[T any](value T) Parser[T] {
 	return func(input ParserInput) ParserResult[T] {
 		return NewSuccessResult[T](value, input)
 	}
+}
+
+// Version of Return with simpler inline syntax.
+func ReturnValue[T, U any](parser Parser[T], value U) Parser[U] {
+	return Select(parser, func(T) U {
+		return value
+	})
 }
 
 // Convert a stream of characters to a string.
@@ -369,4 +375,50 @@ func Concat[T any](first, second Parser[[]T]) Parser[[]T] {
 			return helper.Union(fr, sr)
 		})
 	})
+}
+
+// Attempt parsing only if the except parser fails.
+func Except[T, U any](parser Parser[T], except Parser[U]) Parser[T] {
+	return func(input ParserInput) ParserResult[T] {
+		r := except(input)
+		if r.Succeeded {
+			return NewFailureResult[T](input, "Excepted parser succeeded.", []string{"other than the excepted input"})
+		}
+		return parser(input)
+	}
+}
+
+// Parse a sequence of items until a terminator is reached.
+// Returns the sequence, discarding the terminator.
+func Until[T, U any](parser Parser[T], until Parser[U]) Parser[[]T] {
+	return Then(Many(Except(parser, until)), func(v []T) Parser[[]T] {
+		return ReturnValue(until, v)
+	})
+}
+
+// Succeed if the parsed value matches predicate.
+func Where[T any](parser Parser[T], predicate func(T) bool) Parser[T] {
+	return func(input ParserInput) ParserResult[T] {
+		return IfSuccess(parser(input), func(s ParserResult[T]) ParserResult[T] {
+			if predicate(s.Value) {
+				return s
+			}
+
+			return NewFailureResult[T](input, fmt.Sprintf("Unexpected %v", s.Value), []string{})
+		})
+	}
+}
+
+// Monadic combinator Then, adapted for Linq comprehension syntax.
+func SelectMany[T, U, V any](parser Parser[T], selector func(T) Parser[U], projector func(T, U) V) Parser[V] {
+	return Then(parser, func(t T) Parser[V] {
+		return Select(selector(t), func(u U) V {
+			return projector(t, u)
+		})
+	})
+}
+
+// Parse a number.
+func Number() Parser[string] {
+	return Text(AtLeastOnce(Numeric()))
 }
