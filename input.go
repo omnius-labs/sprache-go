@@ -1,17 +1,6 @@
 package parse
 
-type ParserInput interface {
-	Advance() ParserInput
-	Source() string
-	Current() rune
-	IsEnd() bool
-	Position() int
-	Line() int
-	Column() int
-	String() string
-}
-
-type parserInput struct {
+type ParserInput struct {
 	source   []rune
 	position int
 	line     int
@@ -19,7 +8,7 @@ type parserInput struct {
 }
 
 func NewParserInput(source string) ParserInput {
-	return parserInput{
+	return ParserInput{
 		source:   []rune(source),
 		position: 0,
 		line:     1,
@@ -27,7 +16,7 @@ func NewParserInput(source string) ParserInput {
 	}
 }
 
-func (p parserInput) Advance() ParserInput {
+func (p ParserInput) Advance() ParserInput {
 	line := p.line
 	if p.Current() == '\n' {
 		line++
@@ -40,7 +29,7 @@ func (p parserInput) Advance() ParserInput {
 		column++
 	}
 
-	return parserInput{
+	return ParserInput{
 		source:   p.source,
 		position: p.position + 1,
 		line:     line,
@@ -48,30 +37,30 @@ func (p parserInput) Advance() ParserInput {
 	}
 }
 
-func (p parserInput) Source() string {
+func (p ParserInput) Source() string {
 	return string(p.source)
 }
 
-func (p parserInput) Current() rune {
+func (p ParserInput) Current() rune {
 	return p.source[p.position]
 }
 
-func (p parserInput) IsEnd() bool {
+func (p ParserInput) IsEnd() bool {
 	return p.position >= len(p.source)
 }
 
-func (p parserInput) Position() int {
+func (p ParserInput) Position() int {
 	return p.position
 }
 
-func (p parserInput) Line() int {
+func (p ParserInput) Line() int {
 	return p.line
 }
 
-func (p parserInput) Column() int {
+func (p ParserInput) Column() int {
 	return p.column
 }
 
-func (p parserInput) String() string {
+func (p ParserInput) String() string {
 	return string(p.source[p.position:])
 }

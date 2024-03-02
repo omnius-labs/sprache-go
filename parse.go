@@ -2,11 +2,11 @@ package parse
 
 import (
 	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 	"unicode"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/lyrise/sprache-go/helper"
 )
 
@@ -297,7 +297,7 @@ func Or[T any](first Parser[T], second Parser[T]) Parser[T] {
 			})
 		}
 
-		if cmp.Equal(fr.Remainder, input) {
+		if reflect.DeepEqual(fr.Remainder, input) {
 			return IfFailure(second(input), func(sf ParserResult[T]) ParserResult[T] {
 				return fr
 			})
@@ -314,7 +314,7 @@ func XOr[T any](first Parser[T], second Parser[T]) Parser[T] {
 		if !fr.Succeeded {
 
 			// The 'X' part
-			if !cmp.Equal(fr.Remainder, input) {
+			if !reflect.DeepEqual(fr.Remainder, input) {
 				return fr
 			}
 
@@ -323,7 +323,7 @@ func XOr[T any](first Parser[T], second Parser[T]) Parser[T] {
 			})
 		}
 
-		if cmp.Equal(fr.Remainder, input) {
+		if reflect.DeepEqual(fr.Remainder, input) {
 			return IfFailure(second(input), func(sf ParserResult[T]) ParserResult[T] {
 				return fr
 			})
@@ -353,7 +353,7 @@ func determineBestError[T any](firstFailure ParserResult[T], secondFailure Parse
 func SetExpectationIfError[T any](parser Parser[T], expectation string) Parser[T] {
 	return func(input ParserInput) ParserResult[T] {
 		return IfFailure(parser(input), func(f ParserResult[T]) ParserResult[T] {
-			if cmp.Equal(f.Remainder, input) {
+			if reflect.DeepEqual(f.Remainder, input) {
 				return NewFailureResult[T](f.Remainder, f.Message, []string{expectation})
 			}
 			return f
