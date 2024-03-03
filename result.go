@@ -1,4 +1,4 @@
-package parse
+package parser
 
 type ParserResult[T any] struct {
 	Value        T

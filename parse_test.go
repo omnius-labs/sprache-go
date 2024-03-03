@@ -1,59 +1,63 @@
-package parse
+package parser_test
 
 import (
-	"fmt"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	parser "github.com/lyrise/sprache-go"
+	"github.com/lyrise/sprache-go/internal"
 )
 
-func TestRuneFunc(t *testing.T) {
-	tests := []struct {
-		name          string
-		input         ParserInput
-		parser        Parser[rune]
-		succeeded     bool
-		wantValue     rune
-		wantRemainder string
-	}{
-		{
-			name:          "simple",
-			input:         NewParserInput("a"),
-			parser:        RuneFunc(func(r rune) bool { return r == 'a' }, ""),
-			succeeded:     true,
-			wantValue:     'a',
-			wantRemainder: "",
-		},
-		{
-			name:          "simple 2",
-			input:         NewParserInput("ab"),
-			parser:        RuneFunc(func(r rune) bool { return r == 'a' }, ""),
-			succeeded:     true,
-			wantValue:     'a',
-			wantRemainder: "b",
-		},
-		{
-			name:          "simple 3",
-			input:         NewParserInput("ab"),
-			parser:        RuneFunc(func(r rune) bool { return r == 'b' }, ""),
-			succeeded:     false,
-			wantValue:     0,
-			wantRemainder: "ab",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(fmt.Sprintf("%v", tt.name), func(t *testing.T) {
-			got := tt.parser(tt.input)
-			if d := cmp.Diff(got.Succeeded, tt.succeeded); len(d) != 0 {
-				t.Errorf("unexpected Succeeded: (-got +want)\n%s", d)
-			}
-			if d := cmp.Diff(got.Value, tt.wantValue); len(d) != 0 {
-				t.Errorf("unexpected Value: (-got +want)\n%s", d)
-			}
-			if d := cmp.Diff(got.Remainder.String(), tt.wantRemainder); len(d) != 0 {
-				t.Errorf("unexpected Input: (-got +want)\n%s", d)
-			}
-		})
-	}
+func TestParse(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Parse Spec")
 }
+
+var _ = Describe("Parse Test", func() {
+
+	Context("RuneFunc Test", func() {
+		tests := []struct {
+			name          string
+			input         parser.ParserInput
+			parser        parser.Parser[rune]
+			wantSucceeded bool
+			wantValue     rune
+			wantRemainder string
+		}{
+			{
+				name:          "simple",
+				input:         parser.NewParserInput("a"),
+				parser:        parser.RuneFunc(func(r rune) bool { return r == 'a' }, ""),
+				wantSucceeded: true,
+				wantValue:     'a',
+				wantRemainder: "",
+			},
+			{
+				name:          "simple 2",
+				input:         parser.NewParserInput("ab"),
+				parser:        parser.RuneFunc(func(r rune) bool { return r == 'a' }, ""),
+				wantSucceeded: true,
+				wantValue:     'a',
+				wantRemainder: "b",
+			},
+			{
+				name:          "simple 3",
+				input:         parser.NewParserInput("ab"),
+				parser:        parser.RuneFunc(func(r rune) bool { return r == 'b' }, ""),
+				wantSucceeded: false,
+				wantValue:     0,
+				wantRemainder: "ab",
+			},
+		}
+		for _, tt := range tests {
+			It(tt.name, func() {
+				got := tt.parser(tt.input)
+				Expect(got.Succeeded).To(Equal(tt.wantSucceeded))
+				Expect(got.Value).To(internal.EqualCmp(tt.wantValue))
+				Expect(got.Remainder.String()).To(internal.EqualCmp(tt.wantRemainder))
+			})
+		}
+	})
+})

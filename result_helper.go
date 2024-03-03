@@ -1,4 +1,4 @@
-package parse
+package parser
 
 func IfSuccess[T any, U any](result ParserResult[T], next func(ParserResult[T]) ParserResult[U]) ParserResult[U] {
 	if result.Succeeded {
