@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/lyrise/sprache-go/helper"
+	"github.com/lyrise/sprache-go/internal"
 )
 
 // TryParse a single character matching 'predicate'
@@ -48,7 +48,7 @@ func RuneExcept(c rune) Parser[rune] {
 
 // Parse a single character of any in rs
 func Runes(rs ...rune) Parser[rune] {
-	description := strings.Join(helper.Map(rs, helper.RuneToString), "|")
+	description := strings.Join(internal.Map(rs, internal.RuneToString), "|")
 	return RuneFunc(func(r rune) bool {
 		return slices.Contains(rs, r)
 	}, description)
@@ -57,7 +57,7 @@ func Runes(rs ...rune) Parser[rune] {
 // Parse a single character of any in s
 func RunesString(s string) Parser[rune] {
 	rs := []rune(s)
-	description := strings.Join(helper.Map(rs, helper.RuneToString), "|")
+	description := strings.Join(internal.Map(rs, internal.RuneToString), "|")
 	return RuneFunc(func(r rune) bool {
 		return slices.Contains(rs, r)
 	}, description)
@@ -65,7 +65,7 @@ func RunesString(s string) Parser[rune] {
 
 // Parses a single character except for those in rs
 func RunesExcept(rs ...rune) Parser[rune] {
-	description := strings.Join(helper.Map(rs, helper.RuneToString), "|")
+	description := strings.Join(internal.Map(rs, internal.RuneToString), "|")
 	return RuneExceptFunc(func(r rune) bool {
 		return slices.Contains(rs, r)
 	}, description)
@@ -74,7 +74,7 @@ func RunesExcept(rs ...rune) Parser[rune] {
 // Parses a single character except for those in s
 func RunesStringExcept(s string) Parser[rune] {
 	rs := []rune(s)
-	description := strings.Join(helper.Map(rs, helper.RuneToString), "|")
+	description := strings.Join(internal.Map(rs, internal.RuneToString), "|")
 	return RuneExceptFunc(func(r rune) bool {
 		return slices.Contains([]rune(s), r)
 	}, description)
@@ -219,7 +219,7 @@ func XMany[T any](parser Parser[T]) Parser[[]T] {
 func AtLeastOnce[T any](parser Parser[T]) Parser[[]T] {
 	return Then(Once(parser), func(t1 []T) Parser[[]T] {
 		return Select(Many(parser), func(ts []T) []T {
-			return helper.Union(t1, ts)
+			return internal.Union(t1, ts)
 		})
 	})
 }
@@ -228,7 +228,7 @@ func AtLeastOnce[T any](parser Parser[T]) Parser[[]T] {
 func XAtLeastOnce[T any](parser Parser[T]) Parser[[]T] {
 	return Then(Once(parser), func(t1 []T) Parser[[]T] {
 		return Select(XMany(parser), func(ts []T) []T {
-			return helper.Union(t1, ts)
+			return internal.Union(t1, ts)
 		})
 	})
 }
@@ -342,7 +342,7 @@ func determineBestError[T any](firstFailure ParserResult[T], secondFailure Parse
 		unionFailure := NewFailureResult[T](
 			firstFailure.Remainder,
 			firstFailure.Message,
-			helper.Union(firstFailure.Expectations, secondFailure.Expectations))
+			internal.Union(firstFailure.Expectations, secondFailure.Expectations))
 		return unionFailure
 	}
 
@@ -372,7 +372,7 @@ func Once[T any](parser Parser[T]) Parser[[]T] {
 func Concat[T any](first, second Parser[[]T]) Parser[[]T] {
 	return Then(first, func(fr []T) Parser[[]T] {
 		return Select(second, func(sr []T) []T {
-			return helper.Union(fr, sr)
+			return internal.Union(fr, sr)
 		})
 	})
 }

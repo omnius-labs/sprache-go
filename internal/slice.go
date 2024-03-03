@@ -1,4 +1,4 @@
-package helper
+package internal
 
 func Map[T any, U any](a []T, f func(T) U) []U {
 	b := make([]U, len(a))
