@@ -2,7 +2,6 @@ package parser
 
 import (
 	"fmt"
-	"reflect"
 	"slices"
 	"strings"
 	"unicode"
@@ -297,7 +296,7 @@ func Or[T any](first Parser[T], second Parser[T]) Parser[T] {
 			})
 		}
 
-		if reflect.DeepEqual(fr.Remainder, input) {
+		if fr.Remainder.Equal(input) {
 			return IfFailure(second(input), func(sf ParserResult[T]) ParserResult[T] {
 				return fr
 			})
@@ -314,7 +313,7 @@ func XOr[T any](first Parser[T], second Parser[T]) Parser[T] {
 		if !fr.Succeeded {
 
 			// The 'X' part
-			if !reflect.DeepEqual(fr.Remainder, input) {
+			if !fr.Remainder.Equal(input) {
 				return fr
 			}
 
@@ -323,7 +322,7 @@ func XOr[T any](first Parser[T], second Parser[T]) Parser[T] {
 			})
 		}
 
-		if reflect.DeepEqual(fr.Remainder, input) {
+		if fr.Remainder.Equal(input) {
 			return IfFailure(second(input), func(sf ParserResult[T]) ParserResult[T] {
 				return fr
 			})
@@ -353,7 +352,7 @@ func determineBestError[T any](firstFailure ParserResult[T], secondFailure Parse
 func SetExpectationIfError[T any](parser Parser[T], expectation string) Parser[T] {
 	return func(input ParserInput) ParserResult[T] {
 		return IfFailure(parser(input), func(f ParserResult[T]) ParserResult[T] {
-			if reflect.DeepEqual(f.Remainder, input) {
+			if f.Remainder.Equal(input) {
 				return NewFailureResult[T](f.Remainder, f.Message, []string{expectation})
 			}
 			return f

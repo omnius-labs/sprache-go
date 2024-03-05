@@ -1,5 +1,7 @@
 package parser
 
+import "slices"
+
 type ParserInput struct {
 	source   []rune
 	position int
@@ -14,6 +16,10 @@ func NewParserInput(source string) ParserInput {
 		line:     1,
 		column:   1,
 	}
+}
+
+func (p ParserInput) Equal(other ParserInput) bool {
+	return slices.Equal(p.source, other.source) && p.position == other.position && p.line == other.line && p.column == other.column
 }
 
 func (p ParserInput) Advance() ParserInput {
