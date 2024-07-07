@@ -1,4 +1,4 @@
-# Parser Combinator (Unofficial Golang port of [Sprache](https://github.com/sprache/Sprache))
+# Parser Combinator for Golang (Unofficial Golang port of [Sprache](https://github.com/sprache/Sprache))
 
 [![test](https://github.com/omnius-labs/sprache-go/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/omnius-labs/sprache-go/actions/workflows/test.yml)
 
