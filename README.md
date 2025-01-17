@@ -2,8 +2,6 @@
 
 [![test](https://github.com/omnius-labs/sprache-go/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/omnius-labs/sprache-go/actions/workflows/test.yml)
 
-Yamux (Yet another Multiplexer) is a multiplexing library for C#
-
 ## Links
 
 - Official Documentation: https://docs.omnius-labs.com/
